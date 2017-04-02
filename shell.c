@@ -10,7 +10,7 @@ int main(){
 	char line[32];
 
 	while(1){
-		interrupt(0x21, 0, "SHELL>", 0, 0);
+		interrupt(0x21, 0, "SHELL>\0", 0, 0);
 		interrupt(0x21, 1, line, 0, 0);
 		handleInput(line);
 	}
