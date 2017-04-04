@@ -4,6 +4,8 @@ int compareString(char*, char*);
 void getFileName(char*);
 void viewFile(char*);
 void execute(char*);
+void dir();
+void create(char*);
 
 
 int main(){
@@ -26,6 +28,12 @@ void handleInput(char* command) {
 	} 
 	else if(compareString(command, "execute\0") == 1) {
 		execute(command);
+	}
+	else if(compareString(command, "dir\0") == 1) {
+		dir();
+	}
+	else if(compareString(command, "create\0") == 1) {
+		create(command);
 	} 
 	else {
 		interrupt(0x21, 0, "BAD COMMAND\n\0", 0, 0);
@@ -83,5 +91,51 @@ void execute(char* command) {
 
 	getFileName(command, fileName);
 	interrupt(0x21, 4, fileName, 0x2000, 0);
+
+}
+
+
+// dir command
+void dir() {
+	int i = 0;
+	int k;
+	int numberOfSectors = 0;
+	int size;
+	char directory[512];
+	char fileName[6];
+
+
+	interrupt(0x21,2,directory,2,0);
+
+	for(i = 0; i < 512; i+=32) {
+		// skip if entry starts with 0x00(deleted)
+		if(directory[i] == 0x00)
+			continue;
+
+		// get fileName
+		for(k = 0; k < 6; k++)
+			fileName[k] = directory[k + i];
+
+		numberOfSectors = 0;
+
+		// get number of sectors used
+		for(k = 6; k < 32; k++) {
+			if(directory[k + i] != 0x00)
+				numberOfSectors++;
+		}
+
+		// each sector is 512 byte
+		size = numberOfSectors * 512;
+
+		// print 1 result
+		interrupt(0x21, 0, fileName, 0, 0);
+		interrupt(0x21, 0, size, 0, 0);
+
+	}
+}
+
+
+// create command
+void create(char* command) {
 
 }

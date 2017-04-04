@@ -23,6 +23,11 @@ int main() {
 	interrupt(0x21,8, "testW\0", buffer2, 1); //write file testW
 	interrupt(0x21,3, "testW\0", buffer1, 0); //read file testW
 	interrupt(0x21,0, buffer1, 0, 0); // print out contents of testW
+/*char buffer[13312];
+makeInterrupt21();
+interrupt(0x21, 7, "messag\0", 0, 0); //delete messag
+interrupt(0x21, 3, "messag\0", buffer, 0); // try to read messag
+interrupt(0x21, 0, buffer, 0, 0); //print out the contents of buffer*/
 
 }
 
@@ -227,10 +232,7 @@ void deleteFile(char* file_name) {
 void writeFile(char* file_name, char* buffer, int secNum) {
 	char directory[512];
 	char map[512];
-	char tempBuffer[512];
-	int tempBufferIndex;
 	int firstChar = 0;
-	int foundEmptySector = 0;
 	int j = 0;
 	int k;
 	int mapIndex;
@@ -238,8 +240,9 @@ void writeFile(char* file_name, char* buffer, int secNum) {
 	int filledSectors = 0;
 	int bufferIndex = 0;
 
-	readSector(directory, 2);
-	readSector(map, 1);
+	makeInterrupt21();
+	interrupt(0x21,2,map,1,0);
+	interrupt(0x21,2,directory,2,0);
 
 	// finding first char of empty directory entry
 	for(firstChar = 0; firstChar < 512; firstChar += 32) {
@@ -247,47 +250,46 @@ void writeFile(char* file_name, char* buffer, int secNum) {
 			break;
 	}
 
+	// fill name with 0x00 as default
+	for(j = 0; j < 6; j++) {
+		directory[firstChar + j] = 0x00;
+	}	
+
 	// add file name in directory
 	for(j = 0; j < 6; j++) {
 		if(file_name[j] != '\0') {
 			directory[firstChar + j] = file_name[j];
-		} else {
-			// fill the remaining bytes with 0x00
-			for(k = j; k < 6; k++) {
-				directory[firstChar + k] = 0x00;
-			}
 		}
 	}
+
 	directoryPointer = 6;
 	// add sector numbers
 
-	for(mapIndex = 3; mapIndex < 512 && filledSectors < secNum; mapIndex++) {
+	for(mapIndex = 3; mapIndex < 256 && filledSectors < secNum; mapIndex++) {
 		if(map[mapIndex] == 0x00) {
 			map[mapIndex] = 0xFF;
-			directory[firstChar + directoryPointer] = mapIndex - 1; // add the sector number to the directory;
+			directory[firstChar + directoryPointer] = mapIndex; // add the sector number to the directory;
 			directoryPointer++;
 			filledSectors++;
 
-			// get the 512 bytes to be written in the sector
-			for(tempBufferIndex = 0; tempBufferIndex < 512; tempBufferIndex++){
-				tempBuffer[tempBufferIndex] = buffer[bufferIndex + tempBufferIndex];
-			}
-			bufferIndex += 512;
-			// write tempBuffer into the empty sector
-			writeSector(tempBuffer, mapIndex);
+			// write 512 of buffer into the empty sector
+			interrupt(0x21,6,buffer,mapIndex,0);
+
+			buffer += 512;
 
 		}
 
 	}
 
 	// fill the remaining empty spaces in the directory to 0x00
-	for(k = directoryPointer; k < 512; k++) {
+	for(k = directoryPointer; k < 32; k++) {
 		directory[k] = 0x00;
 	}
 
+
 	if(filledSectors == secNum) {
-		writeSector(directory,2);
-		writeSector(map,1);
+		interrupt(0x21,6,map,1,0);
+		interrupt(0x21,6,directory,2,0);
 	} else {
 		printString("NO SPACE FOUND \0");
 	}
