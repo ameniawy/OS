@@ -137,5 +137,34 @@ void dir() {
 
 // create command
 void create(char* command) {
+	char fileName[6];
+	char line[32];
+	char file[13312];
+	char fileIndex = 0;
+	int sectors = 0;
+	int i;
+	getFileName(command, fileName);
 
+	while(1) {
+		line[0] = '\0';
+		interrupt(0x21, 0, ">\0", 0, 0);
+
+		// read line from user
+		interrupt(0x21, 1, line, 0, 0);
+
+		// until user enters an empty line
+		if(line[0] == '\0')
+			break;
+
+		for(i = 0; i < 32; i++) {
+			if(line[i] == 0x00)
+				break;
+
+			file[fileIndex] = line[i];
+			fileIndex++;
+		}
+	}
+
+	// write file
+	interrupt(0x21, 8, fileName, file, 1);
 }

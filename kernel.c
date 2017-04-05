@@ -13,7 +13,7 @@ void writeFile(char* , char* , int);
 
 
 int main() {
-	int i=0;
+/*	int i=0;
 	char buffer1[13312];
 	char buffer2[13312];
 	buffer2[0]='h'; buffer2[1]='e'; buffer2[2]='l'; buffer2[3]='l';
@@ -22,12 +22,18 @@ int main() {
 	makeInterrupt21();
 	interrupt(0x21,8, "testW\0", buffer2, 1); //write file testW
 	interrupt(0x21,3, "testW\0", buffer1, 0); //read file testW
-	interrupt(0x21,0, buffer1, 0, 0); // print out contents of testW
-/*char buffer[13312];
-makeInterrupt21();
-interrupt(0x21, 7, "messag\0", 0, 0); //delete messag
-interrupt(0x21, 3, "messag\0", buffer, 0); // try to read messag
-interrupt(0x21, 0, buffer, 0, 0); //print out the contents of buffer*/
+	interrupt(0x21,0, buffer1, 0, 0); // print out contents of testW*/
+
+/*	char buffer[13312];
+	makeInterrupt21();
+	interrupt(0x21, 7, "messag\0", 0, 0); //delete messag
+	interrupt(0x21, 3, "messag\0", buffer, 0); // try to read messag
+	interrupt(0x21, 0, buffer, 0, 0); //print out the contents of buffer*/
+
+	makeInterrupt21();
+	interrupt(0x21,4,"shell\0", 0x2000,0);
+
+	while(1);
 
 }
 
@@ -58,17 +64,25 @@ void readString(char* line)
 				--counter;
 			}
 		}
-		else{
+		else if(x != 0xd) {
 			line[counter] = x;
 			interrupt(0x10, 0xE*256+x, 0, 0, 0); //print char
-			++counter;
+			counter++;
 		}
 		
 	}
-	line[counter] = 0xa;
-	++counter;
-	line[counter] = 0x0;
+
+	if(counter != 0) {
+		line[counter] = 0xa;
+		counter++;
+		line[counter] = '\0';
+	} else {
+		line[counter] = '\0';
+	}
 	interrupt(0x10, 0xE*256+0xa, 0, 0, 0);
+	interrupt(0x10, 0xE*256+0x0, 0, 0, 0);
+	interrupt(0x10, 0xE*256+0xd, 0, 0, 0);
+
 
 }
 
@@ -214,7 +228,7 @@ void deleteFile(char* file_name) {
 			while(a<32) {
 				if((line1[a] > 0)&&(line1[a] != '\n')) {
 					directory[i + a] = 0x00; // overwrite sector number in directory
-					map[line1[a] + 1] = 0x00; // overwrite occupied sector mark in map
+					map[line1[a]] = 0x00; // overwrite occupied sector mark in map
 				}
 				a++;
 			}
@@ -265,7 +279,7 @@ void writeFile(char* file_name, char* buffer, int secNum) {
 	directoryPointer = 6;
 	// add sector numbers
 
-	for(mapIndex = 3; mapIndex < 256 && filledSectors < secNum; mapIndex++) {
+	for(mapIndex = 3; mapIndex < 512 && filledSectors < secNum; mapIndex++) {
 		if(map[mapIndex] == 0x00) {
 			map[mapIndex] = 0xFF;
 			directory[firstChar + directoryPointer] = mapIndex; // add the sector number to the directory;
