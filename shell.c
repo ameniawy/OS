@@ -7,9 +7,12 @@ void viewFile(char*);
 void execute(char*);
 void dir();
 int DIV(int, int);
+int MOD(int, int);
 void create(char*);
 void delete(char*);
+int getNumberOfSectors(char*);
 void copy(char*);
+void printInt(int );
 
 
 int main(){
@@ -61,6 +64,17 @@ int DIV(int x, int y) {
 		c = c + 1;
 	}
 	return c;
+}
+
+
+int MOD(int x, int y) {
+	int c = DIV(x, y);
+	int i = 0;
+	while(i < c) {
+		x = x - y;
+		i++;
+	}
+	return x;
 }
 
 
@@ -121,6 +135,29 @@ void getFileNameCopy(char* command, char* out) {
 }
 
 
+// prints an Integer 
+void printInt(int num)
+{
+	int i;
+	int n;
+	int mask;
+	do{
+		i = num;
+		mask = 1;
+
+		while(i > 9){
+			i = DIV(i, 10);
+			mask = mask * 10;
+		}
+
+		n = DIV(num, mask);
+		num = MOD(num, mask);
+		interrupt(0x10, 0xE*256+n+48, 0, 0, 0);
+
+	} while(num != 0);
+}
+
+
 // handling view command
 void viewFile(char* command) {
 	char fileName[7];
@@ -148,7 +185,6 @@ void dir() {
 	int i = 0;
 	int k;
 	int numberOfSectors = 0;
-	char size[3];
 	char directory[512];
 	char fileName[7];
 
@@ -163,7 +199,6 @@ void dir() {
 		// get fileName
 		for(k = 0; k < 6; k++) {
 			fileName[k] = directory[k + i];
-			//interrupt(0x21, 0, directory[k + i], 0, 0);
 		}
 		fileName[7] = '\0';
 
@@ -175,30 +210,11 @@ void dir() {
 				numberOfSectors++;
 		}
 
-		switch(numberOfSectors){
-			case 1: size[0] = '1'; size[1] = '\0'; break;
-			case 2: size[0] = '2'; size[1] = '\0'; break;
-			case 3: size[0] = '3'; size[1] = '\0'; break;
-			case 4: size[0] = '4'; size[1] = '\0'; break;
-			case 5: size[0] = '5'; size[1] = '\0'; break;
-			case 6: size[0] = '6'; size[1] = '\0'; break;
-			case 7: size[0] = '7'; size[1] = '\0'; break;
-			case 8: size[0] = '8'; size[1] = '\0'; break;
-			case 9: size[0] = '9'; size[1] = '\0'; break;
-			case 10: size[0] = '1';size[1]='0'; size[2] = '\0'; break;
-			case 11: size[0] = '1';size[1]='1'; size[2] = '\0'; break;
-			case 12: size[0] = '1'; size[1]='2'; size[2] = '\0'; break;
-			case 13: size[0] = '1'; size[1]='3'; size[2] = '\0'; break;
-			case 14: size[0] = '1';size[1]='4'; size[2] = '\0';  break;
-			case 15: size[0] = '1';size[1]='5'; size[2] = '\0';  break;
-			default: size[0] = '0'; size[1] = '\0'; 
-		}
-
 		// print 1 result
 		interrupt(0x21, 0, fileName, 0, 0);
 		interrupt(0x10, 0xE*256+0x20,0,0,0);
-		interrupt(0x21, 0, size, 0, 0);
-		interrupt(0x10, 0xE*256+0xa,0,0,0);
+		printInt(numberOfSectors);
+		interrupt(0x10, 0xE*256+0x20,0,0,0);
 
 	}
 }
@@ -255,11 +271,24 @@ void copy(char* command) {
 	char fileName[7];
 	char fileNameCopy[7];
 	char buffer1[13312];
+	int sectors;
 
 	getFileName(command, fileName);
 	getFileNameCopy(command, fileNameCopy);
 
 	interrupt(0x21, 3, fileName, buffer1, 0);
 
-	interrupt(0x21, 8, fileNameCopy, buffer1, 1);
+	sectors = getNumberOfSectors(buffer1);
+
+	interrupt(0x21, 8, fileNameCopy, buffer1, sectors);
+}
+
+
+// get the number of sectors needed to save this buffer
+int getNumberOfSectors(char* buffer){
+	int i = 0 ;
+	while(buffer[i] != '\0') {
+		i++;
+	}
+	return DIV(i,512) + 1;
 }

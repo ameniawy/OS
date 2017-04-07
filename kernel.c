@@ -219,7 +219,6 @@ void deleteFile(char* file_name) {
 		}
 		a = 6; // skip the first 6 characters
 
-			printString("peace\0");
 		if(found==1){
 			// i represents the index of the first char in the entry
 			// a is the index of the n th char in the entry
