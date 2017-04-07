@@ -197,10 +197,10 @@ void deleteFile(char* file_name) {
 	int a = 6;
 	int counter = 0;
 	
-	//interrupt(0x21, 2, directory, 2,0);
-	//interrupt(0x21, 2, map, 1,0);
-	readSector(directory, 2);
-	readSector(map, 1);
+	interrupt(0x21, 2, directory, 2,0);
+	interrupt(0x21, 2, map, 1,0);
+	//readSector(directory, 2);
+	//readSector(map, 1);
 	while ((i < 512) && (found == 0)){
 		j = 0;
 		//Read line for each entry
@@ -219,6 +219,7 @@ void deleteFile(char* file_name) {
 		}
 		a = 6; // skip the first 6 characters
 
+			printString("peace\0");
 		if(found==1){
 			// i represents the index of the first char in the entry
 			// a is the index of the n th char in the entry
@@ -228,7 +229,7 @@ void deleteFile(char* file_name) {
 			while(a<32) {
 				if((line1[a] > 0)&&(line1[a] != '\n')) {
 					directory[i + a] = 0x00; // overwrite sector number in directory
-					map[line1[a]] = 0x00; // overwrite occupied sector mark in map
+					map[line1[a]] = 0x08; // overwrite occupied sector mark in map
 				}
 				a++;
 			}
@@ -236,10 +237,10 @@ void deleteFile(char* file_name) {
 
 		i = i + 32; // skip to next entry
 	}
-	writeSector(directory, 2);
-	writeSector(map, 1);
-	//interrupt(0x21, 6, directory, 2,0); // write new directory in sector 2
-	//interrupt(0x21, 6, map, 1,0); // write new map in sector 1
+	//writeSector(directory, 2);
+	//writeSector(map, 1);
+	interrupt(0x21, 6, directory, 2,0); // write new directory in sector 2
+	interrupt(0x21, 6, map, 1,0); // write new map in sector 1
 }
 
 
