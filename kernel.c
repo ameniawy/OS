@@ -41,7 +41,7 @@ currentProcess = 0;
 	//Initializing Process Table
 	for(i=0;i<8;i++){
 		active[i]=0;
-		stackPointe[i]=0xFF00;
+		stackPointer[i]=0xFF00;
 	}
 	//interrupt(0x21,4,"shell\0", 0x2000,0);
 	makeTimerInterrupt();
