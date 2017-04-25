@@ -10,9 +10,15 @@ void executeProgram(char*, int);
 void terminateProgram();
 void deleteFile(char*);
 void writeFile(char* , char* , int);
-
-
+void handleTimerInterrupt(int, int);
+int processTable[8];
+int active[8];
+int stackPointer[8];
+int currentProcess;
 int main() {
+int i;
+currentProcess = 0;
+
 /*	int i=0;
 	char buffer1[13312];
 	char buffer2[13312];
@@ -31,11 +37,18 @@ int main() {
 	interrupt(0x21, 0, buffer, 0, 0); //print out the contents of buffer*/
 
 	makeInterrupt21();
-	interrupt(0x21,4,"shell\0", 0x2000,0);
 
+	//Initializing Process Table
+	for(i=0;i<8;i++){
+		active[i]=0;
+		stackPointe[i]=0xFF00;
+	}
+	//interrupt(0x21,4,"shell\0", 0x2000,0);
+	makeTimerInterrupt();
 	while(1);
 
 }
+
 
 void printString(char* line) {
 	int i = 0;
@@ -50,7 +63,7 @@ void printString(char* line) {
 
 
 void readString(char* line)
-{	
+{
 	int counter = 0;
 	char x = 0x0;
 
@@ -69,7 +82,7 @@ void readString(char* line)
 			interrupt(0x10, 0xE*256+x, 0, 0, 0); //print char
 			counter++;
 		}
-		
+
 	}
 
 	if(counter != 0) {
@@ -196,7 +209,7 @@ void deleteFile(char* file_name) {
 	int c = 0 ; //Counter for looping over the first 6 chars in an entry (file name)
 	int a = 6;
 	int counter = 0;
-	
+
 	interrupt(0x21, 2, directory, 2,0);
 	interrupt(0x21, 2, map, 1,0);
 	//readSector(directory, 2);
@@ -267,7 +280,7 @@ void writeFile(char* file_name, char* buffer, int secNum) {
 	// fill name with 0x00 as default
 	for(j = 0; j < 6; j++) {
 		directory[firstChar + j] = 0x00;
-	}	
+	}
 
 	// add file name in directory
 	for(j = 0; j < 6; j++) {
@@ -336,6 +349,10 @@ void terminateProgram(){
 
 	interrupt(0x21,4,word, 0x2000,0);
 
+}
+
+void handleTimerInterrupt(int segment, int sp){
+	returnFromTimer( segment, sp);
 }
 
 
