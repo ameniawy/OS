@@ -15,9 +15,10 @@ int processTable[8];
 int active[8];
 int stackPointer[8];
 int currentProcess;
+int quantum;
 int main() {
-int i;
-currentProcess = 0;
+	int i;
+	currentProcess = 0;
 
 /*	int i=0;
 	char buffer1[13312];
@@ -44,6 +45,7 @@ currentProcess = 0;
 		stackPointer[i]=0xFF00;
 	}
 	//interrupt(0x21,4,"shell\0", 0x2000,0);
+	executeProgram("shell\0", 0x2000);
 	makeTimerInterrupt();
 	while(1);
 
@@ -327,31 +329,54 @@ void writeFile(char* file_name, char* buffer, int secNum) {
 void executeProgram(char* file_name, int segment) {
 	char out[13312];
 	int i = 0;
+	int seg;
+
+	setKernelDataSegment();
+	for(i = 0; i < 8; i++) {
+		if(active[i] == 0){
+			active[i] = 1;
+			restoreDataSegment();
+
+			currentProcess = i;
+			seg = (i + 2) * 0x1000;
+			break;
+		}
+	}
+
 	readFile(file_name, out);
 
 
 	for(i = 0; i < 13312; i++){
-		putInMemory(segment, i, out[i]);
+		putInMemory(seg, i, out[i]);
 	}
 
-	launchProgram(segment);
+	initializeProgram(seg);
+	//launchProgram(seg);
 
 }
 
 void terminateProgram(){
-	char word[6];
-	word[0] = 's';
-	word[1] = 'h';
-	word[2] = 'e';
-	word[3] = 'l';
-	word[4] = 'l';
-	word[5] = '\0';
+	// char word[6];
+	// word[0] = 's';
+	// word[1] = 'h';
+	// word[2] = 'e';
+	// word[3] = 'l';
+	// word[4] = 'l';
+	// word[5] = '\0';
 
-	interrupt(0x21,4,word, 0x2000,0);
+	// interrupt(0x21,4,word, 0x2000,0);
+	setKernelDataSegment();
+	active[currentProcess] = 0;
+	while(1);
 
 }
 
 void handleTimerInterrupt(int segment, int sp){
+	//printString("Tic\0");
+	quantum++;
+	if(quantum == 100) {
+		
+	}
 	returnFromTimer( segment, sp);
 }
 
