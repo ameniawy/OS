@@ -11,6 +11,7 @@ void terminateProgram();
 void deleteFile(char*);
 void writeFile(char* , char* , int);
 void handleTimerInterrupt(int, int);
+void killProcess(int);
 int processTable[8];
 int active[8];
 int stackPointer[8];
@@ -38,13 +39,12 @@ int main() {
 	interrupt(0x21, 0, buffer, 0, 0); //print out the contents of buffer*/
 
 	makeInterrupt21();
-
 	//Initializing Process Table
 	for(i=0;i<8;i++){
 		active[i]=0;
 		stackPointer[i]=0xFF00;
 	}
-	//interrupt(0x21,4,"shell\0", 0x2000,0);
+	interrupt(0x21,4,"shell\0", 0x2000,0);
 	executeProgram("shell\0", 0x2000);
 	makeTimerInterrupt();
 	while(1);
@@ -375,11 +375,15 @@ void handleTimerInterrupt(int segment, int sp){
 	//printString("Tic\0");
 	quantum++;
 	if(quantum == 100) {
-		
+
 	}
-	returnFromTimer( segment, sp);
+	returnFromTimer( segment, sp );
 }
 
+void killProcess( int process ){
+	printString("\nKilling Process\n\0");
+	active[ process ]=0;
+}
 
 void handleInterrupt21(int ax, int bx, int cx, int dx) {
 	if(ax == 0) {
@@ -408,6 +412,9 @@ void handleInterrupt21(int ax, int bx, int cx, int dx) {
 	}
 	else if(ax == 8) {
 		writeFile(bx, cx, dx);
+	}
+	else if(ax == 9) {
+		killProcess(bx);
 	}
 	else {
 		printString("\nERROR\n\0");
