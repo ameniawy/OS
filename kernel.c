@@ -11,42 +11,39 @@ void terminateProgram();
 void deleteFile(char*);
 void writeFile(char* , char* , int);
 void handleTimerInterrupt(int, int);
-int processTable[8];
+
 int active[8];
 int stackPointer[8];
 int currentProcess;
 int quantum;
+
+
 int main() {
 	int i;
+	char shell[6];
 	currentProcess = 0;
+	quantum = 0;
 
-/*	int i=0;
-	char buffer1[13312];
-	char buffer2[13312];
-	buffer2[0]='h'; buffer2[1]='e'; buffer2[2]='l'; buffer2[3]='l';
-	buffer2[4]='o';
-	for(i=5; i<13312; i++) buffer2[i]=0x00;
-	makeInterrupt21();
-	interrupt(0x21,8, "testW\0", buffer2, 1); //write file testW
-	interrupt(0x21,3, "testW\0", buffer1, 0); //read file testW
-	interrupt(0x21,0, buffer1, 0, 0); // print out contents of testW*/
-
-/*	char buffer[13312];
-	makeInterrupt21();
-	interrupt(0x21, 7, "messag\0", 0, 0); //delete messag
-	interrupt(0x21, 3, "messag\0", buffer, 0); // try to read messag
-	interrupt(0x21, 0, buffer, 0, 0); //print out the contents of buffer*/
-
-	makeInterrupt21();
+	shell[0]='s';
+	shell[1]='h';
+	shell[2]='e';
+	shell[3]='l';
+	shell[4]='l';
+	shell[5]= 0x0;
 
 	//Initializing Process Table
 	for(i=0;i<8;i++){
 		active[i]=0;
 		stackPointer[i]=0xFF00;
 	}
-	//interrupt(0x21,4,"shell\0", 0x2000,0);
-	executeProgram("shell\0", 0x2000);
+	makeInterrupt21();
 	makeTimerInterrupt();
+
+	//interrupt(0x21,4,shell, 0x2000,0);
+	interrupt(0x21, 4, "hello2\0", 0, 0);
+	interrupt(0x21, 4, "hello1\0", 0, 0);
+
+
 	while(1);
 
 }
@@ -330,18 +327,23 @@ void executeProgram(char* file_name, int segment) {
 	char out[13312];
 	int i = 0;
 	int seg;
+	//printString(file_name);
 
 	setKernelDataSegment();
 	for(i = 0; i < 8; i++) {
 		if(active[i] == 0){
-			active[i] = 1;
-			restoreDataSegment();
-
-			currentProcess = i;
-			seg = (i + 2) * 0x1000;
 			break;
 		}
 	}
+	restoreDataSegment();
+
+	setKernelDataSegment();
+	active[i] = 1;
+	currentProcess = i;
+	stackPointer[i] = 0xFF00;
+	restoreDataSegment();
+
+	seg = (i + 2) * 0x1000;
 
 	readFile(file_name, out);
 
@@ -372,12 +374,42 @@ void terminateProgram(){
 }
 
 void handleTimerInterrupt(int segment, int sp){
-	//printString("Tic\0");
+	int i;
+	int seg;
+	int nextStackPointer;
 	quantum++;
 	if(quantum == 100) {
-		
+		quantum = 0;
+		setKernelDataSegment();
+		if(segment != 0x1000){
+			stackPointer[currentProcess] = sp;
+		}
+		restoreDataSegment();
+
+		if(currentProcess == 6) {
+			i = 0;
+		}
+		else {
+			i = currentProcess + 1;
+		}
+		while(i != currentProcess) {
+			//printString("SWITCH!~\0");
+			if(active[i]) {
+				currentProcess = i;
+				nextStackPointer = stackPointer[currentProcess];
+				seg = (i + 2) * 0x1000;
+				returnFromTimer(seg, nextStackPointer);
+
+			}
+			// loop around
+			i = MOD(i+1, 8);
+				
+		}
+
+
 	}
-	returnFromTimer( segment, sp);
+	// if no activve processes found or quantum < 100
+	returnFromTimer(segment, sp);
 }
 
 
