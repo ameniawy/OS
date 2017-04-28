@@ -11,6 +11,7 @@ void terminateProgram();
 void deleteFile(char*);
 void writeFile(char* , char* , int);
 void handleTimerInterrupt(int, int);
+void killProcess(int);
 
 int active[8];
 int stackPointer[8];
@@ -23,7 +24,7 @@ int main() {
 	char shell[6];
 	currentProcess = 0;
 	quantum = 0;
-
+	
 	shell[0]='s';
 	shell[1]='h';
 	shell[2]='e';
@@ -31,20 +32,16 @@ int main() {
 	shell[4]='l';
 	shell[5]= 0x0;
 
-	//Initializing Process Table
-	for(i=0;i<8;i++){
+	for(i=0; i<8; i++) {
 		active[i]=0;
 		stackPointer[i]=0xFF00;
 	}
+
 	makeInterrupt21();
 	makeTimerInterrupt();
-
-	//interrupt(0x21,4,shell, 0x2000,0);
-	interrupt(0x21, 4, "hello2\0", 0, 0);
-	interrupt(0x21, 4, "hello1\0", 0, 0);
-
-
+	interrupt(0x21, 4, "shell\0", 0x2000, 0);
 	while(1);
+
 
 }
 
@@ -327,11 +324,12 @@ void executeProgram(char* file_name, int segment) {
 	char out[13312];
 	int i = 0;
 	int seg;
-	//printString(file_name);
+	printString(file_name);
 
 	setKernelDataSegment();
 	for(i = 0; i < 8; i++) {
 		if(active[i] == 0){
+			seg = (i + 2) * 0x1000;
 			break;
 		}
 	}
@@ -343,7 +341,6 @@ void executeProgram(char* file_name, int segment) {
 	stackPointer[i] = 0xFF00;
 	restoreDataSegment();
 
-	seg = (i + 2) * 0x1000;
 
 	readFile(file_name, out);
 
@@ -358,17 +355,10 @@ void executeProgram(char* file_name, int segment) {
 }
 
 void terminateProgram(){
-	// char word[6];
-	// word[0] = 's';
-	// word[1] = 'h';
-	// word[2] = 'e';
-	// word[3] = 'l';
-	// word[4] = 'l';
-	// word[5] = '\0';
-
-	// interrupt(0x21,4,word, 0x2000,0);
 	setKernelDataSegment();
 	active[currentProcess] = 0;
+	stackPointer[currentProcess] = 0xFF00;
+	restoreDataSegment();
 	while(1);
 
 }
@@ -413,6 +403,14 @@ void handleTimerInterrupt(int segment, int sp){
 }
 
 
+void killProcess(int process) {
+	//printString("\nKilling Process\n\0");
+	setKernelDataSegment();
+	active[process] = 0;
+	restoreDataSegment();
+}
+
+
 void handleInterrupt21(int ax, int bx, int cx, int dx) {
 	if(ax == 0) {
 		printString(bx);
@@ -440,6 +438,9 @@ void handleInterrupt21(int ax, int bx, int cx, int dx) {
 	}
 	else if(ax == 8) {
 		writeFile(bx, cx, dx);
+	}
+	else if(ax == 9) {
+ 		killProcess(bx);
 	}
 	else {
 		printString("\nERROR\n\0");

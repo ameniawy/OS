@@ -5,6 +5,7 @@ void getFileName(char*, char*);
 void getFileNameCopy(char*, char*);
 void viewFile(char*);
 void execute(char*);
+void kill(char*);
 void dir();
 int DIV(int, int);
 int MOD(int, int);
@@ -47,6 +48,9 @@ void handleInput(char* command) {
 	}
 	else if(compareString(command, "copy\0") == 1) {
 		copy(command);
+	} 
+	else if(compareString(command, "kill\0") == 1) {
+		kill(command);
 	}  
 	else {
 		interrupt(0x21, 0, "BAD COMMAND\n\0", 0, 0);
@@ -166,6 +170,14 @@ void viewFile(char* command) {
 	getFileName(command, fileName);
 	interrupt(0x21, 3, fileName, fileContent, 0);
 	interrupt(0x21, 0, fileContent, 0, 0);
+
+}
+
+
+// handling kill command
+void kill(char* command) {
+	int processNum = command[5] -0x30;
+	interrupt(0x21, 9, processNum , 0, 0);
 
 }
 
